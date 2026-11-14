@@ -546,6 +546,27 @@ def restore_expense(expense_id):
     return redirect(url_for("recycle_bin"))
 
 
+@app.route("/expenses/restore-all", methods=["POST"])
+def restore_all_expenses():
+    """Restore all soft-deleted expenses from the Recycle Bin."""
+    connection = get_db_connection()
+    result = connection.execute(
+        """
+        UPDATE expenses
+        SET is_deleted = 0, deleted_at = NULL
+        WHERE is_deleted = 1
+        """
+    )
+    connection.commit()
+    connection.close()
+
+    if result.rowcount:
+        flash(f"Restored {result.rowcount} expenses successfully.", "success")
+    else:
+        flash("Recycle Bin is already empty.", "success")
+    return redirect(url_for("recycle_bin"))
+
+
 @app.route("/expenses/<int:expense_id>/delete-permanently", methods=["POST"])
 def permanently_delete_expense(expense_id):
     connection = get_db_connection()
