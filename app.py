@@ -1,4 +1,5 @@
 from datetime import date
+from math import isfinite
 
 from flask import Flask, render_template, request, redirect, url_for, flash
 
@@ -305,6 +306,70 @@ def add_expense():
     return render_template(
         "add_expense.html", categories=categories, today=date.today().isoformat()
     )
+
+
+@app.route("/expenses/<int:expense_id>/edit", methods=["GET", "POST"])
+def edit_expense(expense_id):
+    """Edit an active expense; deleted expenses cannot be edited."""
+    connection = get_db_connection()
+    expense = connection.execute(
+        "SELECT * FROM expenses WHERE id = ? AND is_deleted = 0",
+        (expense_id,),
+    ).fetchone()
+
+    if expense is None:
+        connection.close()
+        flash("Expense not found.", "error")
+        return redirect(url_for("expense_list"))
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        amount_text = request.form.get("amount", "").strip()
+        category_id = request.form.get("category_id", "").strip()
+        expense_date = request.form.get("expense_date", "").strip()
+        notes = request.form.get("notes", "").strip()
+
+        try:
+            amount = float(amount_text)
+        except ValueError:
+            amount = 0
+
+        try:
+            valid_date = date.fromisoformat(expense_date).isoformat() == expense_date
+        except ValueError:
+            valid_date = False
+
+        category = connection.execute(
+            "SELECT id FROM categories WHERE id = ? "
+            "AND (is_archived = 0 OR id = ?)",
+            (category_id, expense["category_id"]),
+        ).fetchone()
+
+        if not title or len(title) > 100 or not isfinite(amount) or amount <= 0 or not valid_date or not category:
+            connection.close()
+            flash("Enter a valid title, amount, category and date.", "error")
+            return redirect(url_for("edit_expense", expense_id=expense_id))
+
+        connection.execute(
+            """
+            UPDATE expenses
+            SET title = ?, amount = ?, category_id = ?, expense_date = ?, notes = ?
+            WHERE id = ? AND is_deleted = 0
+            """,
+            (title, amount, category["id"], expense_date, notes, expense_id),
+        )
+        connection.commit()
+        connection.close()
+        flash("Expense updated successfully.", "success")
+        return redirect(url_for("expense_list"))
+
+    categories = connection.execute(
+        "SELECT id, name, icon, is_archived FROM categories "
+        "WHERE is_archived = 0 OR id = ? ORDER BY name",
+        (expense["category_id"],),
+    ).fetchall()
+    connection.close()
+    return render_template("edit_expense.html", expense=expense, categories=categories)
 
 
 @app.route("/create-category", methods=["POST"])
