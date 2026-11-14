@@ -1,6 +1,16 @@
 from datetime import date
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+import csv
+from io import StringIO
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    make_response,
+)
 
 from database import get_db_connection, init_db
 
@@ -500,6 +510,59 @@ def permanently_delete_expense(expense_id):
     flash("Expense permanently deleted.", "success")
     return redirect(url_for("recycle_bin"))
 
+
+@app.route("/reports")
+def reports():
+    connection = get_db_connection()
+
+    # Get overall expense statistics.
+    summary = connection.execute("""
+        SELECT
+            COUNT(*) AS total_count,
+            COALESCE(SUM(amount), 0) AS total_amount,
+            COALESCE(AVG(amount), 0) AS average_amount
+        FROM expenses
+        WHERE is_deleted = 0
+    """).fetchone()
+
+    # Get spending totals for each category.
+    category_summary = connection.execute("""
+        SELECT
+            COALESCE(c.name, 'Uncategorized') AS category_name,
+            COALESCE(c.icon, '📦') AS category_icon,
+            SUM(e.amount) AS total
+        FROM expenses AS e
+        LEFT JOIN categories AS c
+            ON e.category_id = c.id
+        WHERE e.is_deleted = 0
+        GROUP BY e.category_id, c.name, c.icon
+        ORDER BY total DESC
+    """).fetchall()
+
+    # Get the latest expenses.
+    recent_expenses = connection.execute("""
+        SELECT
+            e.title,
+            e.amount,
+            e.expense_date,
+            e.notes,
+            COALESCE(c.name, 'Uncategorized') AS category_name
+        FROM expenses AS e
+        LEFT JOIN categories AS c
+            ON e.category_id = c.id
+        WHERE e.is_deleted = 0
+        ORDER BY e.expense_date DESC, e.id DESC
+        LIMIT 10
+    """).fetchall()
+
+    connection.close()
+
+    return render_template(
+        "reports.html",
+        summary=summary,
+        category_summary=category_summary,
+        recent_expenses=recent_expenses
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)
