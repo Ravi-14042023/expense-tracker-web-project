@@ -561,8 +561,52 @@ def reports():
         "reports.html",
         summary=summary,
         category_summary=category_summary,
-        recent_expenses=recent_expenses
+        recent_expenses=recent_expenses,
     )
+
+
+@app.route("/reports/export/csv")
+def export_expenses_csv():
+    connection = get_db_connection()
+
+    expenses = connection.execute("""
+        SELECT
+            e.expense_date,
+            e.title,
+            COALESCE(c.name, 'Uncategorized') AS category_name,
+            e.amount,
+            e.notes
+        FROM expenses AS e
+        LEFT JOIN categories AS c
+            ON e.category_id = c.id
+        WHERE e.is_deleted = 0
+        ORDER BY e.expense_date DESC, e.id DESC
+    """).fetchall()
+
+    connection.close()
+
+    output = StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(["Date", "Title", "Category", "Amount", "Notes"])
+
+    for expense in expenses:
+        writer.writerow(
+            [
+                expense["expense_date"],
+                expense["title"],
+                expense["category_name"],
+                expense["amount"],
+                expense["notes"] or "",
+            ]
+        )
+
+    response = make_response("\ufeff" + output.getvalue())
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    response.headers["Content-Disposition"] = "attachment; filename=expense-report.csv"
+
+    return response
+
 
 if __name__ == "__main__":
     app.run(debug=True)
