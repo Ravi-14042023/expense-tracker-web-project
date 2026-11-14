@@ -1,0 +1,131 @@
+{% extends "base.html" %} {% block title %}Dashboard | ExpenseFlow{% endblock %}
+{% block heading %}Dashboard{% endblock %} {% block content %}
+<section class="welcome">
+    <div>
+        <p class="eyebrow">YOUR MONEY, YOUR CONTROL</p>
+        <h2>Welcome back!</h2>
+        <p>Track your spending and build better money habits.</p>
+    </div>
+    <button type="button" class="primary-button" id="openExpenseForm">
+        + Add Expense
+    </button>
+</section>
+
+<section class="stats-grid">
+    <article class="stat-card">
+        <p>Total Expenses</p>
+        <h2>₹{{ "%.2f"|format(total_expenses) }}</h2>
+        <span>All recorded expenses</span>
+    </article>
+
+    <article class="stat-card">
+        <p>This Month</p>
+        <h2>₹{{ "%.2f"|format(monthly_expenses) }}</h2>
+        <span>Spending this month</span>
+    </article>
+
+    <article class="stat-card">
+        <p>Transactions</p>
+        <h2>{{ transaction_count }}</h2>
+        <span>Recorded transactions</span>
+    </article>
+</section>
+
+<section class="content-grid chart-grid">
+    <!-- Left panel: Monthly Spending -->
+    <article class="panel">
+        <div class="panel-heading">
+            <div>
+                <h3>Monthly Spending</h3>
+                <p>Your spending over the last six months.</p>
+            </div>
+            <span class="period-tag">6 Months</span>
+        </div>
+
+        {% set max_monthly = monthly_spending | map(attribute='amount') | max %}
+
+        <div class="monthly-chart">
+            {% for item in monthly_spending %}
+            <div class="month-column">
+                <span class="bar-value"> ₹{{ "%.0f"|format(item.amount) }} </span>
+
+                <div class="bar-area">
+                    <div class="month-bar"
+                        data-height="{{ (item.amount / max_monthly * 100) if max_monthly > 0 else 0 }}"
+                        title="{{ item.label }}: ₹{{ '%.2f'|format(item.amount) }}"></div>
+                </div>
+
+                <span class="month-label">{{ item.label }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+
+    <!-- Right panel: Spending by Category -->
+    <article class="panel">
+        <div class="panel-heading">
+            <div>
+                <h3>Spending by Category</h3>
+                <p>See where your money goes.</p>
+            </div>
+        </div>
+
+        {% if category_spending %} {% set category_total = category_spending |
+        sum(attribute='amount') %}
+
+        <div class="pie-layout">
+            <!-- Left side: even-indexed categories -->
+            <div class="pie-legend pie-legend-left" id="categoryPieLegendLeft">
+                {% for item in category_spending %} {% if loop.index0 % 2 == 0 %}
+                <div class="pie-legend-item" data-category="{{ item.name }}" data-amount="{{ item.amount }}">
+                    <span class="pie-legend-name">
+                        <span class="pie-color"></span>
+                        {{ item.icon }} {{ item.name }}
+                    </span>
+
+                    <strong class="pie-legend-value">
+                        ₹{{ "%.2f"|format(item.amount) }}
+                    </strong>
+
+                    <span class="pie-percentage"></span>
+                </div>
+                {% endif %} {% endfor %}
+            </div>
+
+            <!-- Center: pie chart without a total label -->
+            <div class="category-pie" id="categoryPieChart" role="img" aria-label="Spending by category pie chart">
+            </div>
+
+            <!-- Right side: odd-indexed categories -->
+            <div class="pie-legend pie-legend-right" id="categoryPieLegendRight">
+                {% for item in category_spending %} {% if loop.index0 % 2 == 1 %}
+                <div class="pie-legend-item" data-category="{{ item.name }}" data-amount="{{ item.amount }}">
+                    <span class="pie-legend-name">
+                        <span class="pie-color"></span>
+                        {{ item.icon }} {{ item.name }}
+                    </span>
+
+                    <strong class="pie-legend-value">
+                        ₹{{ "%.2f"|format(item.amount) }}
+                    </strong>
+
+                    <span class="pie-percentage"></span>
+                </div>
+                {% endif %} {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="chart-empty">No expense data available yet.</div>
+        {% endif %}
+    </article>
+</section>
+<section class="panel expense-modal" id="expenseModal" hidden>
+    <div class="modal-close-row">
+        <button type="button" id="closeExpenseForm" class="secondary-button">
+            ✕
+        </button>
+    </div>
+
+    {% include "expenses.html" %}
+</section>
+{% endblock %}

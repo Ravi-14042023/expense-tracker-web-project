@@ -1,0 +1,15 @@
+# Python environment
+.venv/
+__pycache__/
+*.py[cod]
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Flask instance data
+instance/
+
+# Local database and temporary files
+expenses.db
+tempCodeRunnerFile.py

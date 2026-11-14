@@ -1,0 +1,159 @@
+<section class="panel expense-form-panel">
+  <div class="panel-heading">
+    <div>
+      <h3>Record a New Expense</h3>
+      <p>Enter the details below to save your spending.</p>
+    </div>
+  </div>
+
+  <form
+    method="POST"
+    action="{{ url_for('add_expense') }}"
+    class="expense-form"
+  >
+    <div class="form-group">
+      <label for="title">Expense Name</label>
+      <input
+        id="title"
+        name="title"
+        type="text"
+        placeholder="e.g. Lunch or Travel"
+        required
+        maxlength="100"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="amount">Amount (₹)</label>
+      <div class="amount-row">
+        <input
+          id="amount"
+          name="amount"
+          type="number"
+          min="0.01"
+          step="0.01"
+          placeholder="0.00"
+          required
+        />
+
+        <button type="button" id="toggle-calculator" class="secondary-button">
+          Calculator
+        </button>
+      </div>
+    </div>
+
+    <div id="calculator" class="calculator" hidden>
+      <input
+        id="calc-display"
+        type="text"
+        placeholder="Example: 50 * 10"
+        aria-label="Calculator expression"
+      />
+
+      <div class="calculator-buttons">
+        <button type="button" data-value="7">7</button>
+        <button type="button" data-value="8">8</button>
+        <button type="button" data-value="9">9</button>
+        <button type="button" data-value="/">÷</button>
+
+        <button type="button" data-value="4">4</button>
+        <button type="button" data-value="5">5</button>
+        <button type="button" data-value="6">6</button>
+        <button type="button" data-value="*">×</button>
+
+        <button type="button" data-value="1">1</button>
+        <button type="button" data-value="2">2</button>
+        <button type="button" data-value="3">3</button>
+        <button type="button" data-value="-">−</button>
+
+        <button type="button" data-value="0">0</button>
+        <button type="button" data-value=".">.</button>
+        <button type="button" id="calc-clear">C</button>
+        <button type="button" data-value="+">+</button>
+      </div>
+
+      <div class="calculator-actions">
+        <button type="button" id="calc-equals" class="secondary-button">
+          Calculate
+        </button>
+
+        <button type="button" id="use-result" class="primary-button">
+          Use Result
+        </button>
+      </div>
+
+      <p id="calc-error" class="calc-error" aria-live="polite"></p>
+    </div>
+
+    <div class="form-group">
+      <label for="category_id">Category</label>
+
+      <div class="amount-row">
+        <select id="category_id" name="category_id" >
+          <option value="">Select a category</option>
+          {% for category in categories %}
+          <option value="{{ category.id }}">
+            {{ category.icon }} {{ category.name }}
+          </option>
+          {% endfor %}
+        </select>
+
+        <button type="button" id="openNewCategory" class="secondary-button">
+          + New Category
+        </button>
+      </div>
+    </div>
+
+    <div id="newCategoryForm" class="new-category-form" hidden>
+      <div class="form-group">
+        <label for="new_category_name">Category Name</label>
+        <input
+          type="text"
+          id="new_category_name"
+          name="new_category_name"
+          placeholder="e.g. Gym, Books, Travel"
+          maxlength="50"
+        
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="new_category_icon">Category Icon</label>
+        <input
+          type="text"
+          id="new_category_icon"
+          name="new_category_icon"
+          placeholder="Choose or paste an emoji (press win + . for emoji)"
+          maxlength="8"
+        
+        />
+      </div>
+
+    </div>
+
+    <div class="form-group">
+      <label for="expense_date">Date</label>
+      <input
+        id="expense_date"
+        name="expense_date"
+        type="date"
+        value="{{ today }}"
+        required
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="notes">Notes (optional)</label>
+      <textarea
+        id="notes"
+        name="notes"
+        rows="3"
+        placeholder="Add a note..."
+      ></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="primary-button">Save Expense</button>
+    </div>
+  </form>
+</section>

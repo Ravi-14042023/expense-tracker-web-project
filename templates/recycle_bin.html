@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Recycle Bin | ExpenseFlow{% endblock %}
+{% block heading %}Recycle Bin{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+        <div class="message {{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endwith %}
+
+<section class="panel">
+    <div class="panel-heading">
+        <div>
+            <h3>Deleted Expenses</h3>
+            <p>Restore expenses or remove them permanently.</p>
+        </div>
+    </div>
+
+    {% if deleted_expenses %}
+        <div class="table-wrap">
+            <table class="data-table responsive-table">
+                <thead>
+                    <tr>
+                        <th>Expense</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for expense in deleted_expenses %}
+                    <tr>
+                        <td data-label="Expense">{{ expense["title"] }}</td>
+                        <td data-label="Category">
+                            {{ expense["category_icon"] or "📦" }}
+                            {{ expense["category_name"] or "Uncategorized" }}
+                        </td>
+                        <td class="amount" data-label="Amount">
+                            ₹{{ "%.2f"|format(expense["amount"]) }}
+                        </td>
+                        <td data-label="Date">{{ expense["expense_date"] }}</td>
+                        <td data-label="Actions">
+                            <div class="row-actions">
+                                <form method="POST"
+                                      action="{{ url_for('restore_expense', expense_id=expense['id']) }}">
+                                    <button class="primary-button" type="submit">
+                                        Restore
+                                    </button>
+                                </form>
+
+                                <form method="POST"
+                                      action="{{ url_for('permanently_delete_expense', expense_id=expense['id']) }}"
+                                      onsubmit="return confirm('Permanently delete this expense? This cannot be undone.');">
+                                    <button class="secondary-button" type="submit">
+                                        Delete permanently
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">↺</div>
+            <h3>Recycle Bin is empty</h3>
+            <p>Expenses that you delete will appear here.</p>
+            <a href="{{ url_for('expense_list') }}">Back to All Expenses</a>
+        </div>
+    {% endif %}
+</section>
+
+{% endblock %}

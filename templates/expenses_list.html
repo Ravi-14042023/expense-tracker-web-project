@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}All Expenses | ExpenseFlow{% endblock %}
+{% block heading %}All Expenses{% endblock %}
+
+{% block content %}
+
+
+<div class="panel-heading expense-toolbar">
+    <div>
+        <h3>Expense History</h3>
+        <p>View all your recorded expenses.</p>
+    </div>
+
+    <button type="button" class="view-button active" id="show-all-expenses">
+        All Expenses
+    </button>
+
+    <div class="expense-view-selector">
+        <button type="button" class="view-button" data-view="category">
+            Category-wise
+        </button>
+
+        <button type="button" class="view-button" data-view="monthly">
+            Monthly-wise
+        </button>
+
+        <button type="button" class="view-button" data-view="monthly-category">
+            Monthly + Category
+        </button>
+    </div>
+
+    <div class="header-actions">
+        {% if expenses %}
+        <form method="POST" action="{{ url_for('delete_all_expenses') }}"
+            onsubmit="return confirm('Move ALL expenses to the Recycle Bin?');">
+            <button type="submit" class="delete-all-button">
+                Delete All
+            </button>
+        </form>
+        {% endif %}
+
+        <a href="{{ url_for('add_expense') }}" class="primary-button">
+            + Add Expense
+        </a>
+    </div>
+</div>
+
+<!-- Category-wise summary -->
+<div class="expense-summary-view" id="category-view" hidden>
+    <h3>Total by Category</h3>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in category_summary %}
+                <tr>
+                    <td>{{ item["category_icon"] }} {{ item["category_name"] }}</td>
+                    <td>₹{{ "%.2f"|format(item["total"] or 0) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2">No expenses found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Monthly-wise summary -->
+<div class="expense-summary-view" id="monthly-view" hidden>
+    <h3>Total by Month</h3>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in monthly_summary %}
+                <tr>
+                    <td>{{ item["month"] }}</td>
+                    <td>₹{{ "%.2f"|format(item["total"] or 0) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2">No expenses found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Monthly + Category summary -->
+<div class="expense-summary-view" id="monthly-category-view" hidden>
+    <h3>Monthly Category Breakdown</h3>
+
+    {% for month in monthly_summary %}
+    <h4>{{ month["month"] }}</h4>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in monthly_category_summary %}
+                {% if item["month_key"] == month["month_key"] %}
+                <tr>
+                    <td>{{ item["category_icon"] }} {{ item["category_name"] }}</td>
+                    <td>₹{{ "%.2f"|format(item["total"] or 0) }}</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No expenses found.</p>
+    {% endfor %}
+</div>
+
+{% if expenses %}
+<div class="table-wrap original-expense-table">
+    <table class="data-table responsive-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Expense</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Notes</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for expense in expenses %}
+            <tr>
+                <td data-label="Date">{{ expense["expense_date"] }}</td>
+
+                <td data-label="Expense">{{ expense["title"] }}</td>
+
+                <td data-label="Category">
+                    {{ expense["category_icon"] or "📦" }}
+                    {{ expense["category_name"] or "Uncategorized" }}
+                </td>
+
+                <td class="amount" data-label="Amount">
+                    ₹{{ "%.2f"|format(expense["amount"]) }}
+                </td>
+
+
+                <td class="notes-cell" data-label="Notes">
+                    {% if expense['notes'] %}
+                    <span class="note-preview" tabindex="0" role="button" aria-expanded="false"
+                        title="Click to read the full note">
+                        {{ expense['notes'] }}
+                    </span>
+                    {% else %}
+                    —
+                    {% endif %}
+                </td>
+
+                <td data-label="Actions">
+                    <form method="POST" action="{{ url_for('delete_expense', expense_id=expense['id']) }}"
+                        onsubmit="return confirm('Move this expense to the Recycle Bin?');">
+
+                        <button type="submit" class="secondary-button">
+                            Delete
+                        </button>
+
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">₹</div>
+    <h3>No expenses yet</h3>
+    <p>Your recorded expenses will appear here.</p>
+
+    <a class="primary-button" href="{{ url_for('add_expense') }}">
+        Add your first expense
+    </a>
+</div>
+{% endif %}
+</section>
+{% endblock %}

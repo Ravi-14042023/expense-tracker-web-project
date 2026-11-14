@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Categories | ExpenseFlow{% endblock %}
+{% block heading %}Categories{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+        <div class="message {{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endwith %}
+
+<section class="panel">
+    <div class="panel-heading">
+        <div>
+            <h3>Manage Categories</h3>
+            <p>Create and organize your expense categories.</p>
+        </div>
+    </div>
+
+    <form action="{{ url_for('create_category') }}"
+          method="POST" class="new-category-form">
+
+        <div class="form-group">
+            <label for="name">Category name</label>
+            <input id="name" name="name" type="text"
+                   placeholder="e.g. Travel" required maxlength="50">
+        </div>
+
+        <div class="form-group">
+            <label for="icon">Category icon</label>
+            <input id="icon" name="icon" type="text"
+                   value="" maxlength="10" placeholder="press  win+.  for emoji">
+                   
+        </div>
+
+        <button type="submit" class="primary-button">
+            + Create Category
+        </button>
+    </form>
+</section>
+
+<section class="panel" style="margin-top: 24px;">
+    <h3>Active Categories</h3>
+
+    {% if active_categories %}
+        {% for category in active_categories %}
+            <div class="category-row">
+                <div>
+                    <span>{{ category["icon"] }}</span>
+                    <strong>{{ category["name"] }}</strong>
+                </div>
+
+                <form method="POST"
+                      action="{{ url_for('archive_category', category_id=category['id']) }}">
+                    <button type="submit" class="secondary-button">
+                        Archive
+                    </button>
+                </form>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="field-help">No active categories.</p>
+    {% endif %}
+</section>
+
+<section class="panel" style="margin-top: 24px;">
+    <h3>Archived Categories</h3>
+
+    {% if archived_categories %}
+        {% for category in archived_categories %}
+            <div class="category-row">
+                <div>
+                    <span>{{ category["icon"] }}</span>
+                    <strong>{{ category["name"] }}</strong>
+                </div>
+
+                <form method="POST"
+                      action="{{ url_for('restore_category', category_id=category['id']) }}">
+                    <button type="submit" class="primary-button">
+                        Restore
+                    </button>
+                </form>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="field-help">No archived categories.</p>
+    {% endif %}
+</section>
+
+{% endblock %}
