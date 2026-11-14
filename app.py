@@ -191,6 +191,7 @@ def expense_list():
     # Prepare readable month names for the HTML template.
     monthly_summary = [
         {
+            "month_key": row["month_key"],
             "month": date.fromisoformat(row["month_key"] + "-01").strftime("%B %Y"),
             "total": row["total"],
         }
