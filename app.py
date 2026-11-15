@@ -1,10 +1,23 @@
 from datetime import date
+from math import isfinite
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+import csv
+from io import StringIO
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    make_response,
+)
 
 from database import get_db_connection, init_db
 
-app = Flask(__name__)
+
+app = Flask(__name__) # Initialized collaboratively by Student 1 and Student 2
+
 app.secret_key = "dev-key-change-before-deployment"
 
 init_db()
@@ -191,6 +204,7 @@ def expense_list():
     # Prepare readable month names for the HTML template.
     monthly_summary = [
         {
+            "month_key": row["month_key"],
             "month": date.fromisoformat(row["month_key"] + "-01").strftime("%B %Y"),
             "total": row["total"],
         }
@@ -305,6 +319,70 @@ def add_expense():
     return render_template(
         "add_expense.html", categories=categories, today=date.today().isoformat()
     )
+
+
+@app.route("/expenses/<int:expense_id>/edit", methods=["GET", "POST"])
+def edit_expense(expense_id):
+    """Edit an active expense; deleted expenses cannot be edited."""
+    connection = get_db_connection()
+    expense = connection.execute(
+        "SELECT * FROM expenses WHERE id = ? AND is_deleted = 0",
+        (expense_id,),
+    ).fetchone()
+
+    if expense is None:
+        connection.close()
+        flash("Expense not found.", "error")
+        return redirect(url_for("expense_list"))
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        amount_text = request.form.get("amount", "").strip()
+        category_id = request.form.get("category_id", "").strip()
+        expense_date = request.form.get("expense_date", "").strip()
+        notes = request.form.get("notes", "").strip()
+
+        try:
+            amount = float(amount_text)
+        except ValueError:
+            amount = 0
+
+        try:
+            valid_date = date.fromisoformat(expense_date).isoformat() == expense_date
+        except ValueError:
+            valid_date = False
+
+        category = connection.execute(
+            "SELECT id FROM categories WHERE id = ? "
+            "AND (is_archived = 0 OR id = ?)",
+            (category_id, expense["category_id"]),
+        ).fetchone()
+
+        if not title or len(title) > 100 or not isfinite(amount) or amount <= 0 or not valid_date or not category:
+            connection.close()
+            flash("Enter a valid title, amount, category and date.", "error")
+            return redirect(url_for("edit_expense", expense_id=expense_id))
+
+        connection.execute(
+            """
+            UPDATE expenses
+            SET title = ?, amount = ?, category_id = ?, expense_date = ?, notes = ?
+            WHERE id = ? AND is_deleted = 0
+            """,
+            (title, amount, category["id"], expense_date, notes, expense_id),
+        )
+        connection.commit()
+        connection.close()
+        flash("Expense updated successfully.", "success")
+        return redirect(url_for("expense_list"))
+
+    categories = connection.execute(
+        "SELECT id, name, icon, is_archived FROM categories "
+        "WHERE is_archived = 0 OR id = ? ORDER BY name",
+        (expense["category_id"],),
+    ).fetchall()
+    connection.close()
+    return render_template("edit_expense.html", expense=expense, categories=categories)
 
 
 @app.route("/create-category", methods=["POST"])
@@ -481,6 +559,27 @@ def restore_expense(expense_id):
     return redirect(url_for("recycle_bin"))
 
 
+@app.route("/expenses/restore-all", methods=["POST"])
+def restore_all_expenses():
+    """Restore all soft-deleted expenses from the Recycle Bin."""
+    connection = get_db_connection()
+    result = connection.execute(
+        """
+        UPDATE expenses
+        SET is_deleted = 0, deleted_at = NULL
+        WHERE is_deleted = 1
+        """
+    )
+    connection.commit()
+    connection.close()
+
+    if result.rowcount:
+        flash(f"Restored {result.rowcount} expenses successfully.", "success")
+    else:
+        flash("Recycle Bin is already empty.", "success")
+    return redirect(url_for("recycle_bin"))
+
+
 @app.route("/expenses/<int:expense_id>/delete-permanently", methods=["POST"])
 def permanently_delete_expense(expense_id):
     connection = get_db_connection()
@@ -498,6 +597,103 @@ def permanently_delete_expense(expense_id):
 
     flash("Expense permanently deleted.", "success")
     return redirect(url_for("recycle_bin"))
+
+
+@app.route("/reports")
+def reports():
+    connection = get_db_connection()
+
+    # Get overall expense statistics.
+    summary = connection.execute("""
+        SELECT
+            COUNT(*) AS total_count,
+            COALESCE(SUM(amount), 0) AS total_amount,
+            COALESCE(AVG(amount), 0) AS average_amount
+        FROM expenses
+        WHERE is_deleted = 0
+    """).fetchone()
+
+    # Get spending totals for each category.
+    category_summary = connection.execute("""
+        SELECT
+            COALESCE(c.name, 'Uncategorized') AS category_name,
+            COALESCE(c.icon, '📦') AS category_icon,
+            SUM(e.amount) AS total
+        FROM expenses AS e
+        LEFT JOIN categories AS c
+            ON e.category_id = c.id
+        WHERE e.is_deleted = 0
+        GROUP BY e.category_id, c.name, c.icon
+        ORDER BY total DESC
+    """).fetchall()
+
+    # Get the latest expenses.
+    recent_expenses = connection.execute("""
+        SELECT
+            e.title,
+            e.amount,
+            e.expense_date,
+            e.notes,
+            COALESCE(c.name, 'Uncategorized') AS category_name
+        FROM expenses AS e
+        LEFT JOIN categories AS c
+            ON e.category_id = c.id
+        WHERE e.is_deleted = 0
+        ORDER BY e.expense_date DESC, e.id DESC
+        LIMIT 10
+    """).fetchall()
+
+    connection.close()
+
+    return render_template(
+        "reports.html",
+        summary=summary,
+        category_summary=category_summary,
+        recent_expenses=recent_expenses,
+    )
+
+
+@app.route("/reports/export/csv")
+def export_expenses_csv():
+    connection = get_db_connection()
+
+    expenses = connection.execute("""
+        SELECT
+            e.expense_date,
+            e.title,
+            COALESCE(c.name, 'Uncategorized') AS category_name,
+            e.amount,
+            e.notes
+        FROM expenses AS e
+        LEFT JOIN categories AS c
+            ON e.category_id = c.id
+        WHERE e.is_deleted = 0
+        ORDER BY e.expense_date DESC, e.id DESC
+    """).fetchall()
+
+    connection.close()
+
+    output = StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(["Date", "Title", "Category", "Amount", "Notes"])
+
+    for expense in expenses:
+        writer.writerow(
+            [
+                expense["expense_date"],
+                expense["title"],
+                expense["category_name"],
+                expense["amount"],
+                expense["notes"] or "",
+            ]
+        )
+
+    response = make_response("\ufeff" + output.getvalue())
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    response.headers["Content-Disposition"] = "attachment; filename=expense-report.csv"
+
+    return response
 
 
 if __name__ == "__main__":
