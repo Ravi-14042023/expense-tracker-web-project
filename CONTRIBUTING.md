@@ -1,66 +1,135 @@
 # Contributing Guide
 
-## Project Overview
-
-This project is a Personal Expense Tracker developed using Python, Flask, HTML, CSS, and JavaScript.
+This document records the Git and GitHub workflow followed by the two members of the **SEC101 MCA Group Assignment**.
 
 ## Team Members
 
-The project was developed collaboratively by two students.
+| Student | Name | Roll number | GitHub account | Feature branch |
+| --- | --- | --- | --- | --- |
+| Student 1 | **Ravindra Kilaniya** | **48** | [Ravi-14042023](https://github.com/Ravi-14042023) | `feature-member1` |
+| Student 2 | **Tejaswi Rawal** | **61** | [Tejaswi-06-24](https://github.com/Tejaswi-06-24) | `feature-member2` |
 
 ## Branching Strategy
 
-Each student used a separate feature branch to develop and test features.
+- `main` — The integrated project containing reviewed and merged features.
+- `feature-member1` — Ravindra's development branch for expense reporting and CSV export.
+- `feature-member2` — Tejaswi's development branch for editing and restoring expenses.
 
-- `main`: Contains the integrated project.
-- `feature-member1`: Contains Student 1's features.
-- `feature-member2`: Contains Student 2's features.
+Both students used their own GitHub accounts. Changes were developed in feature branches rather than committed directly to `main`.
 
 ## Individual Contributions
 
-### Student 1 — ravii
+### Student 1 — Ravindra Kilaniya (Roll No. 48)
 
-- Developed expense reports.
-- Added CSV export functionality.
-- Added month and category filters.
-- Improved expense summaries.
-- Created and reviewed pull requests.
+- Created and maintained the GitHub repository.
+- Added the expense reports page and category-wise spending information.
+- Implemented month and category summary filters.
+- Added CSV export for active expenses.
+- Fixed the missing month key in the monthly summary.
+- Created [PR #1](https://github.com/Ravi-14042023/expense-tracker-web-project/pull/1) and reviewed Student 2's pull request.
 
-### Student 2
+Selected feature commits:
 
-- Implemented expense editing.
-- Added restore functionality.
-- Worked on the merge conflict resolution.
-- Created and reviewed pull requests.
+| Commit | Work |
+| --- | --- |
+| [`5298a93`](https://github.com/Ravi-14042023/expense-tracker-web-project/commit/5298a93) | Fix missing month key in monthly summary |
+| [`9768020`](https://github.com/Ravi-14042023/expense-tracker-web-project/commit/9768020) | Add month and category filters to expense summary |
+| [`4198bd3`](https://github.com/Ravi-14042023/expense-tracker-web-project/commit/4198bd3) | Add expense reports page |
+| [`1de5f82`](https://github.com/Ravi-14042023/expense-tracker-web-project/commit/1de5f82) | Add CSV export for expenses |
 
-## Pull Requests and Code Reviews
+### Student 2 — Tejaswi Rawal (Roll No. 61)
 
-Both students used pull requests to propose changes.
+- Implemented the expense-editing backend and prefilled Edit Expense form.
+- Added **Edit** buttons to the expense list.
+- Implemented the **Restore All** backend for soft-deleted expenses.
+- Added the Restore All control and related tests.
+- Created [PR #2](https://github.com/Ravi-14042023/expense-tracker-web-project/pull/2) and reviewed Student 1's pull request.
+- Participated in merge-conflict demonstration and recorded the resolution commit.
 
-Each student reviewed the other student's changes before merging. The team merged both feature branches into `main`.
+Selected feature commits:
 
-## Merge Conflict Resolution
+| Commit | Work |
+| --- | --- |
+| [`b1b3331`](https://github.com/Ravi-14042023/expense-tracker-web-project/commit/b1b3331) | Implement expense editing backend and form |
+| [`687330d`](https://github.com/Ravi-14042023/expense-tracker-web-project/commit/687330d) | Add Edit buttons on expense list |
+| [`6c6b914`](https://github.com/Ravi-14042023/expense-tracker-web-project/commit/6c6b914) | Implement Restore All backend |
+| [`36ee029`](https://github.com/Ravi-14042023/expense-tracker-web-project/commit/36ee029) | Add Restore All button and tests |
 
-Both students modified a shared line in `app.py`. Git reported a merge conflict because the changes affected the same line.
+## Pull Requests and Peer Reviews
 
-The team resolved the conflict by keeping one combined initialization comment:
+| PR | Author | Reviewer | Main purpose |
+| --- | --- | --- | --- |
+| [#1 — Reports and CSV export](https://github.com/Ravi-14042023/expense-tracker-web-project/pull/1) | Ravindra | Tejaswi | Integrate report, category/month summary and export changes |
+| [#2 — Edit Expense and Restore All](https://github.com/Ravi-14042023/expense-tracker-web-project/pull/2) | Tejaswi | Ravindra | Integrate expense-editing and recovery changes |
+
+**Review process:**
+
+1. Each student pushed their separate feature branch to GitHub.
+2. Each student opened a pull request targeting `main`.
+3. The other student inspected the changes and submitted a code review.
+4. The group coordinated the merge-conflict demonstration and final integration.
+5. Reviewed changes were merged into `main` after the conflict was resolved.
+
+## Demonstration of a Merge Conflict
+
+Both students modified the same Flask initialisation line in the shared `app.py` file on separate branches.
+
+- Student 1 added a comment identifying Ravi.
+- Student 2 added a different comment identifying Student 2.
+- After the first feature branch was merged, Student 2 attempted to merge `origin/main` into `feature-member2`.
+- Git reported `CONFLICT (content): Merge conflict in app.py`.
+- Both students agreed to retain one shared line rather than two Flask application initialisations.
+
+The final resolved line in `app.py` was:
 
 ```python
 app = Flask(__name__) # Initialized collaboratively by Student 1 and Student 2
 ```
 
-The resolved changes were committed and merged into `main`.
+The resolution was saved in commit [`002fcd6` — Resolve merge conflict with Student 1](https://github.com/Ravi-14042023/expense-tracker-web-project/commit/002fcd6).
 
-## Commit Guidelines
+Screenshots of the terminal conflict, conflict markers, corrected file, pull-request approvals and commit graph are included in the group PDF report.
 
-Use clear commit messages that describe the change.
+## Contribution Workflow for Future Changes
 
-Examples:
+Before creating a new branch, work from an up-to-date `main`:
 
-- `Add CSV export for expenses`
-- `Add expense editing functionality`
-- `Resolve merge conflict with Student 1`
+```bash
+git switch main
+git pull origin main
+git switch -c feature-descriptive-name
+```
+
+After implementing and testing a meaningful change:
+
+```bash
+git status
+git add <changed-files>
+git commit -m "Describe the actual change"
+git push -u origin feature-descriptive-name
+```
+
+Then open a PR into `main`, ask the other team member to review, address feedback and merge only when the changes have been checked.
+
+## Coding and Review Guidelines
+
+- Keep changes limited to the task assigned to the branch.
+- Use clear commit messages that explain **what changed**.
+- Test expense creation, editing, deletion, recovery and reporting after modifying shared routes.
+- Resolve conflicts carefully so neither student's code is accidentally lost.
+- Keep `README.md` and `CONTRIBUTING.md` updated with actual features and evidence links.
+- Never commit passwords, API keys, `.venv/`, `.env` files or `expenses.db`.
+
+## Testing
+
+The Student 2 contribution added tests in `tests/test_student2_features.py`. From the project folder, run:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Also verify the user-facing workflows in the browser, particularly **Edit Expense**, **Recycle Bin → Restore All**, **Reports** and **CSV export**.
 
 ## Reporting Issues
 
-Report any bugs or unexpected behavior to the project team. Include the steps to reproduce the issue and the expected result.
+When reporting a bug, include a brief description, steps to reproduce it, what you expected, what actually happened and any relevant screenshots. Do not attach private expense data or secrets.
