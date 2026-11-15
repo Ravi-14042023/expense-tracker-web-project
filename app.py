@@ -14,7 +14,7 @@ from flask import (
 
 from database import get_db_connection, init_db
 
-app = Flask(__name__)
+app = Flask(__name__) # Initialized by ravii
 app.secret_key = "dev-key-change-before-deployment"
 
 init_db()
