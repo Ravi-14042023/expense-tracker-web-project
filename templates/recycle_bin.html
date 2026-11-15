@@ -17,6 +17,12 @@
             <h3>Deleted Expenses</h3>
             <p>Restore expenses or remove them permanently.</p>
         </div>
+        {% if deleted_expenses %}
+        <form method="POST" action="{{ url_for('restore_all_expenses') }}"
+              onsubmit="return confirm('Restore ALL expenses from the Recycle Bin?');">
+            <button type="submit" class="primary-button">Restore All</button>
+        </form>
+        {% endif %}
     </div>
 
     {% if deleted_expenses %}
