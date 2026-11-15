@@ -312,4 +312,40 @@ document.addEventListener("DOMContentLoaded", function () {
       allExpensesButton.classList.add("active");
     });
   }
+
+  // Filter the Monthly + Category summary.
+  const monthFilter = document.getElementById("filter-month");
+  const categoryFilter = document.getElementById("filter-category");
+
+  function filterMonthlyCategories() {
+    if (!monthFilter || !categoryFilter) return;
+
+    const selectedMonth = monthFilter.value;
+    const selectedCategory = categoryFilter.value;
+
+    document.querySelectorAll(".monthly-category-month").forEach(function (monthSection) {
+      const monthKey = monthSection.dataset.monthKey;
+      const monthMatches = !selectedMonth || monthKey === selectedMonth;
+      let hasVisibleRows = false;
+
+      monthSection.querySelectorAll(".monthly-category-row").forEach(function (row) {
+        const categoryMatches =
+          !selectedCategory || row.dataset.category === selectedCategory;
+
+        row.hidden = !(monthMatches && categoryMatches);
+
+        if (monthMatches && categoryMatches) {
+          hasVisibleRows = true;
+        }
+      });
+
+      monthSection.hidden = !monthMatches || !hasVisibleRows;
+    });
+  }
+
+  if (monthFilter && categoryFilter) {
+    monthFilter.addEventListener("change", filterMonthlyCategories);
+    categoryFilter.addEventListener("change", filterMonthlyCategories);
+  }
+
 });
