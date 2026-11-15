@@ -1,11 +1,23 @@
 from datetime import date
 from math import isfinite
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+import csv
+from io import StringIO
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    make_response,
+)
 
 from database import get_db_connection, init_db
 
-app = Flask(__name__) # Initialized by Student 2
+
+app = Flask(__name__) # Initialized collaboratively by Student 1 and Student 2
+
 app.secret_key = "dev-key-change-before-deployment"
 
 init_db()
@@ -192,6 +204,7 @@ def expense_list():
     # Prepare readable month names for the HTML template.
     monthly_summary = [
         {
+            "month_key": row["month_key"],
             "month": date.fromisoformat(row["month_key"] + "-01").strftime("%B %Y"),
             "total": row["total"],
         }
@@ -584,6 +597,103 @@ def permanently_delete_expense(expense_id):
 
     flash("Expense permanently deleted.", "success")
     return redirect(url_for("recycle_bin"))
+
+
+@app.route("/reports")
+def reports():
+    connection = get_db_connection()
+
+    # Get overall expense statistics.
+    summary = connection.execute("""
+        SELECT
+            COUNT(*) AS total_count,
+            COALESCE(SUM(amount), 0) AS total_amount,
+            COALESCE(AVG(amount), 0) AS average_amount
+        FROM expenses
+        WHERE is_deleted = 0
+    """).fetchone()
+
+    # Get spending totals for each category.
+    category_summary = connection.execute("""
+        SELECT
+            COALESCE(c.name, 'Uncategorized') AS category_name,
+            COALESCE(c.icon, '📦') AS category_icon,
+            SUM(e.amount) AS total
+        FROM expenses AS e
+        LEFT JOIN categories AS c
+            ON e.category_id = c.id
+        WHERE e.is_deleted = 0
+        GROUP BY e.category_id, c.name, c.icon
+        ORDER BY total DESC
+    """).fetchall()
+
+    # Get the latest expenses.
+    recent_expenses = connection.execute("""
+        SELECT
+            e.title,
+            e.amount,
+            e.expense_date,
+            e.notes,
+            COALESCE(c.name, 'Uncategorized') AS category_name
+        FROM expenses AS e
+        LEFT JOIN categories AS c
+            ON e.category_id = c.id
+        WHERE e.is_deleted = 0
+        ORDER BY e.expense_date DESC, e.id DESC
+        LIMIT 10
+    """).fetchall()
+
+    connection.close()
+
+    return render_template(
+        "reports.html",
+        summary=summary,
+        category_summary=category_summary,
+        recent_expenses=recent_expenses,
+    )
+
+
+@app.route("/reports/export/csv")
+def export_expenses_csv():
+    connection = get_db_connection()
+
+    expenses = connection.execute("""
+        SELECT
+            e.expense_date,
+            e.title,
+            COALESCE(c.name, 'Uncategorized') AS category_name,
+            e.amount,
+            e.notes
+        FROM expenses AS e
+        LEFT JOIN categories AS c
+            ON e.category_id = c.id
+        WHERE e.is_deleted = 0
+        ORDER BY e.expense_date DESC, e.id DESC
+    """).fetchall()
+
+    connection.close()
+
+    output = StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(["Date", "Title", "Category", "Amount", "Notes"])
+
+    for expense in expenses:
+        writer.writerow(
+            [
+                expense["expense_date"],
+                expense["title"],
+                expense["category_name"],
+                expense["amount"],
+                expense["notes"] or "",
+            ]
+        )
+
+    response = make_response("\ufeff" + output.getvalue())
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    response.headers["Content-Disposition"] = "attachment; filename=expense-report.csv"
+
+    return response
 
 
 if __name__ == "__main__":
