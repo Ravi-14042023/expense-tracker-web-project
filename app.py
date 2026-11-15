@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 
 from database import get_db_connection, init_db
 
-app = Flask(__name__)
+app = Flask(__name__) # Initialized by Student 2
 app.secret_key = "dev-key-change-before-deployment"
 
 init_db()
